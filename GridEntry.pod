@@ -1,0 +1,341 @@
+=head1 NAME
+
+Tk::GridEntry - Composite widget for a set of widgets in a grid form
+
+=head1 SYNOPSIS
+
+    use Tk::GridEntry;
+    $datahash={};
+    $whash=>{ 'columns'=>["col1","col2"],
+	      'col1'=>{'widgettype'=>'Entry',
+			'label'=>'Col1',
+			'col'=>'0',
+			-width=>'10'
+		      }
+		......
+		}
+    $ge = $top->GridEntry(-structure=>$whash,
+			  -datahash=>$datahash,
+			  -rows=>10
+			)->pack();
+
+
+=head1 DESCRIPTION
+
+=over 4
+B<Tk::GridEntry> defines a set of widgets associated with an hash of arrays.
+
+Creation of GridEntry is a three step process.
+
+Step 1:
+First define the set of widget in hash-of-hash. The hash-of-hash 
+should have element with key "columns", which refers to an array 
+which holds the widget names, in the order of creation. Each entry 
+in this array becomes a column in the grid.
+
+'columns'=>["col1","col2"]
+
+Next attributes of individual columns should be specified as 
+hash. e.g
+
+'col1'=>{'widgettype'=>'Entry',       #widget
+         'label'     =>'Col1',        #Column Title
+         'col'       =>0,              #Column position
+         'bindings'  =>"FocusOut subname",#Event
+         -width=>10,
+         -foreground=>'Red'
+
+	}
+
+The hash in fact contains two sets of data. The elements like 
+'widgettype', 'label', 'col' and 'bindings' are attributes of 
+the whole column. 
+
+The elements with '-' at the beginning like '-width' '-font' 
+are passed to the individual widget. Thus in the above example 
+you get column with title 'Col1', full of Entry widgets, with 
+FocusOut bind to focusoutsub subroutine. The width of widget 
+will be 10.
+
+Step 2
+Once the structure is defined, the GridEntry widget can be created. 
+
+$ge=$top->GridEntry(
+       -structure=>$whash    #The widget structure 
+                              as in step1
+       -datahash=>$datahash  #Reference to hash of arrays 
+                              tobe displayed
+       -rows=>'10'           #No.of rows in the grid
+       -scroll=>'1'          #Scroll buttons yes/no
+       )->pack();
+
+Step 3
+
+The data should be populated. The data is arranged as hash of array.
+Each hash keys are column names, and element of hash-of array are the
+data.
+
+Two situtations are possible 
+1. You want to display existing data and allow editing.
+   The data must be arranged in a hash of arrays e.g
+
+for (my $i=0;$i<10;$i++){
+      $datahash->{'col1'}[$i]=$i;
+      $datahash->{'col2'}[$i]=sprintf "col2.%d",$i;
+      }
+        
+After populating datahash with whatever data required, call
+
+	$ge->moverectoscreen();
+
+	$ge->update();
+
+This will set textvariable in each widget to corresponding array
+element in data.  Any editing on the gridentry will be done on 
+data hash also as textvariable is set.
+
+By default rows are equal to the no.of elements in array. If you need 
+additonal blank rows, use extend property. specifying '-extend=>10' 
+will allow ten elements to be added to arrays in datahash.
+
+2.Want to display blank grid.
+
+First set '-extend' to whatever number of rows you want.
+Like '-extend=>100'.  
+Just set datahash={} (prior to widget definition) and 
+moverecscreen. 
+
+The hash-of-array grows as data is keyed in.
+
+Navigation:
+
+The user may browse with the Page up/down keys. 
+Arrow keys can be used move between currently display rows.
+If scroll option is set, scroll buttons can be used to scroll 
+page up/down.
+If browsecmd is set, whenever, pages are scrolled the callback 
+is executed.
+
+
+=head1 OPTIONS
+
+Each individual widgets can be of any standard/new widget 
+as long as -textvariable option is available.
+
+=over 4
+B<Must have>
+
+=item B<-structure> 
+
+The reference hash which holds individual widget 
+details. See section Specifying Structure for more details.
+
+
+=item B<-datahash>  
+
+The reference hash which holds the hash-of-array 
+containing data. See section Specifying Data.
+
+
+
+=item B<Optionals>
+
+
+=item B<-extend> 
+
+Number of blank rows that can be appended, after the
+end of existing data rows. For example with datahash has 10 rows, 
+and extend is 2, then the gridentry will scroll upto two rows only.
+
+
+Any addition/deletion to data, other than thro GridEntry edition 
+will not be counted in extend.
+
+
+=item B<-scroll> 
+
+Setting this to 1 will display buttons for scrolling
+the data. Page up/down navigation is always available.
+
+
+=item B<-browsecmd> 
+
+This refers to a callback that will be called
+whenever contents are scrolled either with page up/down key or using
+scroll buttons.
+
+=item B<-sumrow> 
+
+This creates a row at the bottom which can be used
+to display summary values. The widgets in this rows are constantly
+associated to a textvariable referred by  $widgethash->{key}{value}.
+See sec. individual widget properties elsewhere in this document.
+
+=head1 METHODS
+
+=over 4
+
+=item B<moverectoscreen> 
+
+This method associates data rows to screen
+display using textvariable property. This method should be called
+whenever - data populated for the first time
+         - manually alter page index and want to redisplay
+         
+
+=item B<extend>  
+
+This method can be used to alter the extend value.
+Extend denotes number of blank rows that be appended to existing data
+by scrolling the widget. 
+
+If called without any arugument returns the current setting of extend.
+
+If called with 'reset' resets counter keeping track of number of
+additions, to zero.
+
+Any other numeric value sets the extend to that value.
+
+=item B<pageindex>
+
+Without argument, returns the page number currently
+in display. Page numbers start with 0. Every n elements (n=rows
+specified) constitute a page.
+
+If given a number the current page index is altered to point to the
+newpage. If value > no.of rows in data, index set to last page.
+
+Note: The screen data will not be updated to new page.Call
+moverectoscreen to update the display.
+
+=item B<movenulltoscreen> 
+
+This method can be used to clear contents of
+screen. All the cells will be associated with a dummy variable to take off
+bindings with data-rows.
+
+=item B<sum>
+
+This method returns the column total value. The column
+name should be passed. 
+
+=item B<curRow> 
+
+Returns the current row index i.e which has focus.
+Note row id 0 is for the labels. Thus first row is 1 and not zero.
+
+
+=item B<curCol> 
+
+Returns the current column index i.e which has focus.
+
+=head1 Specifying Structure
+
+=over 4
+
+=item  A hash-of-hash is specify widget in the cells. Like this
+
+$widgethash={
+              columns=>["col1","col2"],
+              'col1'=>{
+              'widgettype'=>'Entry',
+              'col'=>0,
+              'label'=>'Column 1',
+              'bindings'=>'FocusOut callfocusout',
+              -width=>'10',
+              -font=>'Arial 12'
+               },
+
+            'col2'=>{
+                    ......
+                    }
+                };
+
+B<'columns':>
+
+The key 'columns' is reference to an array with columns to be
+created as elements. The order in which widget will be packed is the
+same order as in this array. Each element in this array should have
+hash defined following the array.
+
+Every widget(cell) in the gridentry will have the widget name as
+
+$structure->{$key}{'widget'}{row} format. Thus in the above example,
+first row first column will be $widgethash->{'col1'}{'widget'}{1}.
+
+$structure->{$key}{'widget'}{0} will always be column title and of
+widget type label.
+
+B<'widgettype'>  : This specifies the type of widget to be created. This
+can be any widget which has option -textvariable.
+
+B<'col'>   : Specifies the column number (starts at 0).
+
+B<'label'> : Specifies column title.
+
+B<'bindings'> : Specifies the callbacks to bind. It should be always in
+pairs 'event1 callback1 event2 callback2'. Do not put any & before
+call back name, just plain callback name. For each cell in the column
+the event bindings are set. The callback will be passed the rowid. At
+present, no other parameter can be passed.
+
+Specifying widget specific attributes:
+
+All options with '-' will be treated as option to the underlying
+widget type. Thus '-width' will be sent to 'entry' using
+$widget->configure() method.
+
+
+=head1 Specifying Data
+
+=over 4
+
+The data associated with GridEntry should be an hash-of-array.
+Like
+
+$datahash={
+               'col1'=>['1','2','3'],
+               'col2'=>['abc','def','ijk']
+               }
+
+The keys in this hash should be same as columns specified in the
+structure. The value of this key is an array which contains column
+data.
+
+
+=head1 KEY BINDINGS
+
+=over 4
+
+=item Arrow keys-up and down, Page Up, Page down keys are bound.
+
+They can be used to navigate. If browsecmd is defined, it will be
+called whenever page up/down key is used.
+
+
+=head1 EXAMPLE
+
+See programmes that came along with the tar ball.
+
+=head1 BUGS
+
+ - May be plenty,please report.
+
+=head1 TODO
+
+ - Copy/Paste between rows/columns
+ - Formula/computation. e.g col1xcol2=col3 to be done 
+automatically.
+ - Parameter passing with 'bindings' option.
+
+=head1 AUTHOR
+
+Raman.P  <raamanp@yahoo.co.in>
+
+=head1 COPYRIGHT
+
+Copyright (c) Raman.P . All rights reserved.
+This package is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
+=cut

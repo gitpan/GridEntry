@@ -1,0 +1,10 @@
+GridEntry is a composite widget. It has no dependancy on any
+widget/module not in default install.
+
+Simply copy it in your perl path and use.
+
+Document is in GridEntry.pod. Use perldoc GridEntry.pod
+
+Some sample scripts are test.pl ratelist.pl
+
+However, an installable tar ball will be readied soon.
